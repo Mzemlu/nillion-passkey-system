@@ -1,0 +1,82 @@
+-------------------- File 'index.html'
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAuthn Ed25519 Example</title>
+    <script src="register.js"></script>
+    <script src="authenticate.js"></script>
+</head>
+<body>
+    <h1>WebAuthn with Ed25519</h1>
+    <div>
+        <h2>Register</h2>
+        <button onclick="register()">Register</button>
+    </div>
+    <div>
+        <h2>Authenticate</h2>
+        <button onclick="authenticate()">Authenticate</button>
+    </div>
+</body>
+</html>
+
+
+-------------------- File 'register.js'
+
+async function register() {
+    const userId = prompt("Enter your user ID:");
+    const publicKey = await navigator.credentials.create({
+        publicKey: {
+            challenge: new Uint8Array([0x8d, 0x0b, 0x3a, 0x9b]),
+            rp: {
+                name: "Example RP"
+            },
+            user: {
+                id: new TextEncoder().encode(userId),
+                name: "user@example.com",
+                displayName: "User Example"
+            },
+            pubKeyCredParams: [{alg: -8, type: "public-key"}]
+        }
+    });
+
+    const publicKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(publicKey.rawId)));
+
+    await fetch('/register', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: userId, public_key: publicKeyBase64})
+    });
+}
+
+--------------------------- File 'authenticate.js' 
+
+async function authenticate() {
+    const userId = prompt("Enter your user ID:");
+    const challenge = new Uint8Array([0x8d, 0x0b, 0x3a, 0x9b]);
+
+    const assertion = await navigator.credentials.get({
+        publicKey: {
+            challenge: challenge,
+            allowCredentials: [{
+                type: 'public-key',
+                id: new Uint8Array([]),
+                transports: ['usb', 'ble', 'nfc']
+            }]
+        }
+    });
+
+    const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(assertion.response.signature)));
+
+    await fetch('/authenticate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: userId, signature: signatureBase64, challenge: btoa(String.fromCharCode(...challenge))})
+    });
+}
+
+
+
+
