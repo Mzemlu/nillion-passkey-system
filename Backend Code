@@ -1,0 +1,50 @@
+--- File 'app.py'
+from flask import Flask, request, jsonify
+from models import db, User
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives import serialization
+import base64
+
+app = Flask(__name__)
+app.config.from_object('config.Config')
+db.init_app(app)
+
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    user_id = data.get('user_id')
+    public_key = data.get('public_key')
+
+    if not user_id or not public_key:
+        return jsonify({"error": "Invalid data"}), 400
+
+    # Save the public key to the database
+    new_user = User(user_id=user_id, public_key=public_key)
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({"status": "registered"}), 201
+
+@app.route('/authenticate', methods=['POST'])
+def authenticate():
+    data = request.json
+    user_id = data.get('user_id')
+    signature = base64.b64decode(data.get('signature'))
+    challenge = base64.b64decode(data.get('challenge'))
+
+    user = User.query.filter_by(user_id=user_id).first()
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    public_key_bytes = base64.b64decode(user.public_key)
+    public_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)
+
+    try:
+        public_key.verify(signature, challenge)
+        return jsonify({"status": "authenticated"}), 200
+    except Exception:
+        return jsonify({"status": "failed"}), 401
+
+if __name__ == '__main__':
+    app.run(debug=True)
