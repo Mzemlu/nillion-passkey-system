@@ -1,4 +1,4 @@
---- File 'app.py'
+---------------------- File 'app.py'
 from flask import Flask, request, jsonify
 from models import db, User
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -48,3 +48,51 @@ def authenticate():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+
+----------------------------- File 'models.py'
+
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(100), unique=True, nullable=False)
+    public_key = db.Column(db.Text, nullable=False)
+
+
+---------------------------- File 'database.py'
+
+from flask import Flask
+from models import db
+import config
+
+def init_db():
+    app = Flask(__name__)
+    app.config.from_object(config.Config)
+    db.init_app(app)
+    with app.app_context():
+        db.create_all()
+
+if __name__ == '__main__':
+    init_db()
+
+
+---------------------------- File 'config.py'
+
+import os
+
+class Config:
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///webauthn.db')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+
+--------------------------- File 'requirements.txt'
+
+Flask==2.0.3
+Flask-SQLAlchemy==2.5.1
+cryptography==36.0.1
+
+
