@@ -1,0 +1,15 @@
+webauthn-ed25519-example/
+│
+├── backend/
+│   ├── app.py
+│   ├── models.py
+│   ├── database.py
+│   ├── config.py
+│   └── requirements.txt
+│
+├── frontend/
+│   ├── index.html
+│   ├── register.js
+│   ├── authenticate.js
+│
+└── README.md
